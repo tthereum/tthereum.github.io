@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A brighter Ethereum-inspired web3 landing page with a polished wallet experience."
+    />
+    <title>TTH — A brighter web3 experience</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.0/dist/ethers.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="page-bg" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="#">TTH</a>
+      <nav class="site-nav">
+        <a href="#learn">Learn</a>
+        <a href="#build">Build</a>
+        <a href="#demo">Demo</a>
+      </nav>
+    </header>
+
+    <main class="app-shell">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <p class="eyebrow">A brighter onchain experience</p>
+          <h1>Build, explore, and move value on a web3 home that feels modern.</h1>
+          <p class="lead">
+            TTH brings an Ethereum-inspired experience into a lightweight wallet flow, pairing a fresh color story with a clear path to connect, inspect, and transfer tokens.
+          </p>
+          <div class="hero-actions">
+            <button id="connectButton" class="primary">Connect MetaMask</button>
+            <a class="ghost-button" href="#demo">Open wallet demo</a>
+          </div>
+          <ul class="hero-highlights">
+            <li>Fast wallet connection</li>
+            <li>Simple token transfers</li>
+            <li>Built for experimentation</li>
+          </ul>
+        </div>
+
+        <div class="hero-panel">
+          <h2>Wallet status</h2>
+          <p id="statusMessage">MetaMask is required to connect your wallet.</p>
+          <div class="wallet-meta">
+            <span>Account</span>
+            <strong id="accountValue">Not connected</strong>
+          </div>
+          <div class="wallet-meta">
+            <span>Network</span>
+            <strong id="networkValue">—</strong>
+          </div>
+          <div class="wallet-meta">
+            <span>Token</span>
+            <strong id="tokenNameValue">TTH</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-strip" id="learn">
+        <article class="feature-card">
+          <h3>Composable</h3>
+          <p>Connect your wallet to a seamless experience that feels familiar, quick, and ready for experimentation.</p>
+        </article>
+        <article class="feature-card" id="build">
+          <h3>Accessible</h3>
+          <p>Thoughtful layouts and clear actions make the network feel approachable, even for first-time users.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Flexible</h3>
+          <p>From token discovery to transfer flows, the experience stays lightweight while retaining essential power.</p>
+        </article>
+      </section>
+
+      <section class="grid" id="demo">
+        <article class="card">
+          <h2>Contract setup</h2>
+          <label for="contractAddress">Deployed token contract address</label>
+          <input id="contractAddress" type="text" placeholder="0x..." />
+          <button id="loadContractButton" class="secondary">Load token</button>
+          <p id="contractFeedback" class="feedback">Enter your deployed TTH contract address to begin.</p>
+        </article>
+
+        <article class="card">
+          <h2>Balance</h2>
+          <div class="balance-row">
+            <span>Token balance</span>
+            <strong id="balanceValue">0 TTH</strong>
+          </div>
+          <div class="balance-row">
+            <span>Native balance</span>
+            <strong id="nativeBalanceValue">0 ETH</strong>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Send TTH</h2>
+          <label for="recipientAddress">Recipient</label>
+          <input id="recipientAddress" type="text" placeholder="0x..." />
+          <label for="amountInput">Amount</label>
+          <input id="amountInput" type="number" step="0.01" min="0" placeholder="10" />
+          <button id="sendButton" class="primary">Send</button>
+          <p id="sendFeedback" class="feedback">Your transfer will appear here after confirmation.</p>
+        </article>
+
+        <article class="card">
+          <h2>Receive TTH</h2>
+          <p>Share your wallet address to receive tokens.</p>
+          <div class="receive-box">
+            <span id="receiveAddress">Not connected</span>
+            <button id="copyAddressButton" class="secondary">Copy address</button>
+          </div>
+          <p class="feedback">Make sure the receiving account is connected to the same network as your token deployment.</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
