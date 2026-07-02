@@ -52,27 +52,37 @@ function formatAddress(address) {
   return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected";
 }
 
+function getMetaMaskProvider() {
+  if (typeof window === "undefined" || !window.ethereum) {
+    return null;
+  }
+
+  if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length) {
+    return window.ethereum.providers.find((provider) => provider?.isMetaMask) || window.ethereum.providers[0];
+  }
+
+  return window.ethereum;
+}
+
 async function detectProvider() {
   if (typeof window === "undefined") return null;
 
-  if (window.ethereum) {
-    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length) {
-      return window.ethereum.providers.find((provider) => provider?.isMetaMask) || window.ethereum.providers[0];
-    }
-    return window.ethereum;
+  const detectedProvider = getMetaMaskProvider();
+  if (detectedProvider) {
+    return detectedProvider;
   }
 
   return new Promise((resolve) => {
-    const handle = () => resolve(window.ethereum || null);
+    const handle = () => resolve(getMetaMaskProvider());
     window.addEventListener("ethereum#initialized", handle, { once: true });
-    window.setTimeout(() => resolve(window.ethereum || null), 3000);
+    window.setTimeout(() => resolve(getMetaMaskProvider()), 3000);
   });
 }
 
 async function ensureProvider() {
   const detectedProvider = await detectProvider();
   if (!detectedProvider) {
-    setStatus("MetaMask is not installed. Install it to continue.", true);
+    setStatus("MetaMask was not detected. Install or enable MetaMask in this browser and try again.", true);
     return null;
   }
 
@@ -86,7 +96,15 @@ async function connectWallet() {
     const provider = await ensureProvider();
     if (!provider) return;
 
-    const accounts = await provider.send("eth_requestAccounts", []);
+    const ethereumProvider = getMetaMaskProvider();
+    let accounts = [];
+
+    if (ethereumProvider?.request) {
+      accounts = await ethereumProvider.request({ method: "eth_requestAccounts" });
+    } else if (typeof provider.send === "function") {
+      accounts = await provider.send("eth_requestAccounts", []);
+    }
+
     if (!accounts.length) {
       setStatus("No wallet account was selected.", true);
       return;
@@ -105,7 +123,11 @@ async function connectWallet() {
     setStatus(`Connected to ${network.name || "your network"}.`);
     await loadToken();
   } catch (error) {
-    setStatus(error.message || "Wallet connection failed.", true);
+    if (error?.code === 4001) {
+      setStatus("MetaMask connection was rejected.", true);
+    } else {
+      setStatus(error.message || "Wallet connection failed.", true);
+    }
   }
 }
 
