@@ -268,11 +268,25 @@ async function openBuyFlow() {
 }
 
 async function initialize() {
-  elements.connectButton.addEventListener("click", connectWallet);
-  elements.loadContractButton.addEventListener("click", loadToken);
-  elements.sendButton.addEventListener("click", sendToken);
-  elements.copyAddressButton.addEventListener("click", copyAddress);
-  elements.buyButton.addEventListener("click", openBuyFlow);
+  if (elements.connectButton) {
+    elements.connectButton.addEventListener("click", connectWallet);
+  }
+
+  if (elements.loadContractButton) {
+    elements.loadContractButton.addEventListener("click", loadToken);
+  }
+
+  if (elements.sendButton) {
+    elements.sendButton.addEventListener("click", sendToken);
+  }
+
+  if (elements.copyAddressButton) {
+    elements.copyAddressButton.addEventListener("click", copyAddress);
+  }
+
+  if (elements.buyButton) {
+    elements.buyButton.addEventListener("click", openBuyFlow);
+  }
 
   if (window.ethereum) {
     const provider = window.ethereum;
