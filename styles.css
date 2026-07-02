@@ -197,6 +197,35 @@ button:hover {
   gap: 10px;
 }
 
+.profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: white;
+  font-weight: 700;
+}
+
+.profile-pill strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.profile-pill p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .hero-panel h2 {
   margin: 0 0 6px;
   font-size: 1.1rem;
@@ -264,7 +293,8 @@ input::placeholder {
 
 .wallet-meta,
 .balance-row,
-.receive-box {
+.receive-box,
+.deploy-result {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -276,6 +306,16 @@ input::placeholder {
 .receive-box {
   flex-wrap: wrap;
   padding: 14px 0;
+}
+
+.deploy-result {
+  margin-top: 10px;
+}
+
+.deploy-result strong {
+  text-align: right;
+  font-size: 0.9rem;
+  word-break: break-all;
 }
 
 .feedback {

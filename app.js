@@ -12,15 +12,19 @@ const state = {
   account: null,
   network: null,
   contract: null,
-  tokenMeta: null
+  tokenMeta: null,
+  artifact: null
 };
 
 const elements = {
   connectButton: document.getElementById("connectButton"),
+  deployButton: document.getElementById("deployButton"),
   loadContractButton: document.getElementById("loadContractButton"),
   sendButton: document.getElementById("sendButton"),
   copyAddressButton: document.getElementById("copyAddressButton"),
   statusMessage: document.getElementById("statusMessage"),
+  profileName: document.getElementById("profileName"),
+  profileSubtitle: document.getElementById("profileSubtitle"),
   accountValue: document.getElementById("accountValue"),
   networkValue: document.getElementById("networkValue"),
   tokenNameValue: document.getElementById("tokenNameValue"),
@@ -31,27 +35,48 @@ const elements = {
   recipientAddress: document.getElementById("recipientAddress"),
   amountInput: document.getElementById("amountInput"),
   sendFeedback: document.getElementById("sendFeedback"),
-  receiveAddress: document.getElementById("receiveAddress")
+  receiveAddress: document.getElementById("receiveAddress"),
+  initialSupply: document.getElementById("initialSupply"),
+  deployFeedback: document.getElementById("deployFeedback"),
+  deployedAddressValue: document.getElementById("deployedAddressValue")
 };
 
 function setStatus(message, isError = false) {
   elements.statusMessage.textContent = message;
-  elements.statusMessage.style.color = isError ? "#ff5a7a" : "#39d0ff";
+  elements.statusMessage.style.color = isError ? "#ff6b8b" : "#38d3c0";
 }
 
 function formatAddress(address) {
   return address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected";
 }
 
+async function detectProvider() {
+  if (typeof window === "undefined") return null;
+
+  if (window.ethereum) {
+    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length) {
+      return window.ethereum.providers.find((provider) => provider?.isMetaMask) || window.ethereum.providers[0];
+    }
+    return window.ethereum;
+  }
+
+  return new Promise((resolve) => {
+    const handle = () => resolve(window.ethereum || null);
+    window.addEventListener("ethereum#initialized", handle, { once: true });
+    window.setTimeout(() => resolve(window.ethereum || null), 3000);
+  });
+}
+
 async function ensureProvider() {
-  if (!window.ethereum) {
+  const detectedProvider = await detectProvider();
+  if (!detectedProvider) {
     setStatus("MetaMask is not installed. Install it to continue.", true);
     return null;
   }
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  state.provider = provider;
-  return provider;
+  const browserProvider = new ethers.BrowserProvider(detectedProvider);
+  state.provider = browserProvider;
+  return browserProvider;
 }
 
 async function connectWallet() {
@@ -59,7 +84,7 @@ async function connectWallet() {
     const provider = await ensureProvider();
     if (!provider) return;
 
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await provider.send("eth_requestAccounts", []);
     if (!accounts.length) {
       setStatus("No wallet account was selected.", true);
       return;
@@ -73,10 +98,64 @@ async function connectWallet() {
     elements.accountValue.textContent = formatAddress(state.account);
     elements.networkValue.textContent = network.name || `Chain ${network.chainId}`;
     elements.receiveAddress.textContent = state.account;
+    elements.profileName.textContent = "Connected profile";
+    elements.profileSubtitle.textContent = formatAddress(state.account);
     setStatus(`Connected to ${network.name || "your network"}.`);
     await loadToken();
   } catch (error) {
     setStatus(error.message || "Wallet connection failed.", true);
+  }
+}
+
+async function loadArtifact() {
+  if (state.artifact) return state.artifact;
+
+  const response = await fetch("./artifacts/contracts/TTHToken.sol/TTHToken.json");
+  if (!response.ok) {
+    throw new Error("Unable to load the contract artifact.");
+  }
+
+  state.artifact = await response.json();
+  return state.artifact;
+}
+
+async function deployToken() {
+  if (!state.account) {
+    elements.deployFeedback.textContent = "Connect your wallet first.";
+    return;
+  }
+
+  const initialSupply = elements.initialSupply.value.trim();
+  if (!initialSupply || Number(initialSupply) <= 0) {
+    elements.deployFeedback.textContent = "Enter a valid initial supply.";
+    return;
+  }
+
+  try {
+    elements.deployFeedback.textContent = "Deploying your TTH token...";
+    const artifact = await loadArtifact();
+    const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, state.signer);
+    const parsedSupply = ethers.parseUnits(initialSupply, 18);
+    const contract = await factory.deploy(parsedSupply);
+    await contract.waitForDeployment();
+    const deployedAddress = await contract.getAddress();
+
+    state.contract = contract;
+    const [name, symbol, decimals] = await Promise.all([
+      contract.name(),
+      contract.symbol(),
+      contract.decimals()
+    ]);
+
+    state.tokenMeta = { name, symbol, decimals };
+    elements.contractAddress.value = deployedAddress;
+    elements.deployedAddressValue.textContent = formatAddress(deployedAddress);
+    elements.tokenNameValue.textContent = `${name} (${symbol})`;
+    elements.deployFeedback.textContent = `Deployed ${name} at ${formatAddress(deployedAddress)}.`;
+    elements.contractFeedback.textContent = `Loaded ${name} at ${formatAddress(deployedAddress)}.`;
+    await refreshBalances();
+  } catch (error) {
+    elements.deployFeedback.textContent = `Deployment failed: ${error.message}`;
   }
 }
 
@@ -182,25 +261,15 @@ async function copyAddress() {
 
 async function initialize() {
   elements.connectButton.addEventListener("click", connectWallet);
+  elements.deployButton.addEventListener("click", deployToken);
   elements.loadContractButton.addEventListener("click", loadToken);
   elements.sendButton.addEventListener("click", sendToken);
   elements.copyAddressButton.addEventListener("click", copyAddress);
 
   if (window.ethereum) {
-    window.ethereum.on("accountsChanged", async () => {
-      const provider = await ensureProvider();
-      if (!provider) return;
-      const [account] = await window.ethereum.request({ method: "eth_accounts" });
-      if (account) {
-        state.account = account;
-        state.signer = await provider.getSigner();
-        const network = await provider.getNetwork();
-        state.network = network;
-        elements.accountValue.textContent = formatAddress(state.account);
-        elements.networkValue.textContent = network.name || `Chain ${network.chainId}`;
-        elements.receiveAddress.textContent = state.account;
-        await loadToken();
-      } else {
+    const provider = window.ethereum;
+    provider.on("accountsChanged", async (accounts) => {
+      if (!accounts.length) {
         state.account = null;
         state.signer = null;
         state.contract = null;
@@ -209,10 +278,27 @@ async function initialize() {
         elements.receiveAddress.textContent = "Not connected";
         elements.balanceValue.textContent = "0 TTH";
         elements.nativeBalanceValue.textContent = "0 ETH";
+        elements.profileName.textContent = "Web3 Profile";
+        elements.profileSubtitle.textContent = "Connect MetaMask to activate your wallet.";
+        setStatus("Wallet disconnected.", true);
+        return;
       }
+
+      const browserProvider = await ensureProvider();
+      if (!browserProvider) return;
+      state.account = accounts[0];
+      state.signer = await browserProvider.getSigner();
+      const network = await browserProvider.getNetwork();
+      state.network = network;
+      elements.accountValue.textContent = formatAddress(state.account);
+      elements.networkValue.textContent = network.name || `Chain ${network.chainId}`;
+      elements.receiveAddress.textContent = state.account;
+      elements.profileName.textContent = "Connected profile";
+      elements.profileSubtitle.textContent = formatAddress(state.account);
+      await loadToken();
     });
 
-    window.ethereum.on("chainChanged", () => window.location.reload());
+    provider.on("chainChanged", () => window.location.reload());
   }
 }
 
