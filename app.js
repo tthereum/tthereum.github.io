@@ -34,6 +34,7 @@ const elements = {
   nativeBalanceValue: document.getElementById("nativeBalanceValue"),
   recipientAddress: document.getElementById("recipientAddress"),
   amountInput: document.getElementById("amountInput"),
+  assetSelect: document.getElementById("assetSelect"),
   sendFeedback: document.getElementById("sendFeedback"),
   receiveAddress: document.getElementById("receiveAddress"),
   initialSupply: document.getElementById("initialSupply"),
@@ -215,13 +216,14 @@ async function refreshBalances() {
 }
 
 async function sendToken() {
-  if (!state.contract || !state.account) {
-    elements.sendFeedback.textContent = "Connect your wallet and load a token contract first.";
-    return;
-  }
-
   const recipient = elements.recipientAddress.value.trim();
   const amount = elements.amountInput.value.trim();
+  const selectedAsset = elements.assetSelect.value;
+
+  if (!state.account) {
+    elements.sendFeedback.textContent = "Connect your wallet first.";
+    return;
+  }
 
   if (!ethers.isAddress(recipient)) {
     elements.sendFeedback.textContent = "Enter a valid recipient address.";
@@ -234,12 +236,28 @@ async function sendToken() {
   }
 
   try {
-    const decimals = state.tokenMeta?.decimals ?? 18;
-    const parsedAmount = ethers.parseUnits(amount, decimals);
-    const tx = await state.contract.transfer(recipient, parsedAmount);
-    elements.sendFeedback.textContent = `Sending ${amount} TTH...`;
-    await tx.wait();
-    elements.sendFeedback.textContent = `Transfer complete. Hash: ${tx.hash}`;
+    if (selectedAsset === "eth") {
+      const tx = await state.signer.sendTransaction({
+        to: recipient,
+        value: ethers.parseEther(amount)
+      });
+      elements.sendFeedback.textContent = `Sending ${amount} ETH...`;
+      await tx.wait();
+      elements.sendFeedback.textContent = `ETH transfer complete. Hash: ${tx.hash}`;
+    } else {
+      if (!state.contract) {
+        elements.sendFeedback.textContent = "Load a token contract before sending tokens.";
+        return;
+      }
+
+      const decimals = state.tokenMeta?.decimals ?? 18;
+      const parsedAmount = ethers.parseUnits(amount, decimals);
+      const tx = await state.contract.transfer(recipient, parsedAmount);
+      elements.sendFeedback.textContent = `Sending ${amount} ${state.tokenMeta?.symbol || "tokens"}...`;
+      await tx.wait();
+      elements.sendFeedback.textContent = `Token transfer complete. Hash: ${tx.hash}`;
+    }
+
     await refreshBalances();
   } catch (error) {
     elements.sendFeedback.textContent = `Transfer failed: ${error.message}`;

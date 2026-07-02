@@ -29,7 +29,7 @@
           <p class="eyebrow">A brighter onchain experience</p>
           <h1>Build, explore, and move value on a web3 home that feels modern.</h1>
           <p class="lead">
-            TTH brings an Ethereum-inspired experience into a lightweight wallet flow, pairing a fresh color story with a clear path to connect, inspect, and transfer tokens.
+            TTH brings a real Ethereum wallet experience into a lightweight web app, so you can connect MetaMask, inspect balances, and send native ETH or ERC-20 tokens on-chain.
           </p>
           <div class="hero-actions">
             <button id="connectButton" class="primary">Connect MetaMask</button>
@@ -118,25 +118,30 @@
         </article>
 
         <article class="card">
-          <h2>Send TTH</h2>
+          <h2>Send ETH or tokens</h2>
+          <label for="assetSelect">Asset</label>
+          <select id="assetSelect">
+            <option value="eth">ETH</option>
+            <option value="token">Loaded token</option>
+          </select>
           <label for="recipientAddress">Recipient</label>
           <input id="recipientAddress" type="text" placeholder="0x..." />
           <label for="amountInput">Amount</label>
           <input id="amountInput" type="number" step="0.01" min="0" placeholder="10" />
-          <button id="sendButton" class="primary">Send</button>
-          <p id="sendFeedback" class="feedback">Your transfer will appear here after confirmation.</p>
+          <button id="sendButton" class="primary">Send selected asset</button>
+          <p id="sendFeedback" class="feedback">Real transactions will be broadcast from your connected wallet.</p>
         </article>
       </section>
 
       <section class="grid">
         <article class="card">
-          <h2>Receive TTH</h2>
-          <p>Share your wallet address to receive tokens.</p>
+          <h2>Receive ETH or tokens</h2>
+          <p>Share your wallet address to receive native ETH or supported ERC-20 tokens.</p>
           <div class="receive-box">
             <span id="receiveAddress">Not connected</span>
             <button id="copyAddressButton" class="secondary">Copy address</button>
           </div>
-          <p class="feedback">Make sure the receiving account is connected to the same network as your token deployment.</p>
+          <p class="feedback">Use the same account and network when receiving assets from another wallet.</p>
         </article>
       </section>
 
