@@ -198,11 +198,21 @@ button:hover {
   gap: 10px;
 }
 
+.profile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .profile-pill {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.profile-pill.large {
+  padding-bottom: 4px;
 }
 
 .avatar {
@@ -331,8 +341,7 @@ input::placeholder {
 
 @media (max-width: 900px) {
   .hero-card,
-  .grid,
-  .feature-strip {
+  .grid {
     grid-template-columns: 1fr;
   }
 }

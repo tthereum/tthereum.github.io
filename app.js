@@ -37,14 +37,15 @@ const elements = {
   assetSelect: document.getElementById("assetSelect"),
   sendFeedback: document.getElementById("sendFeedback"),
   receiveAddress: document.getElementById("receiveAddress"),
-  initialSupply: document.getElementById("initialSupply"),
-  deployFeedback: document.getElementById("deployFeedback"),
-  deployedAddressValue: document.getElementById("deployedAddressValue")
+  statusValue: document.getElementById("statusValue"),
+  buyButton: document.getElementById("buyButton"),
+  buyFeedback: document.getElementById("buyFeedback")
 };
 
 function setStatus(message, isError = false) {
   elements.statusMessage.textContent = message;
   elements.statusMessage.style.color = isError ? "#ff6b8b" : "#38d3c0";
+  elements.statusValue.textContent = isError ? "Needs attention" : "Connected";
 }
 
 function formatAddress(address) {
@@ -105,58 +106,6 @@ async function connectWallet() {
     await loadToken();
   } catch (error) {
     setStatus(error.message || "Wallet connection failed.", true);
-  }
-}
-
-async function loadArtifact() {
-  if (state.artifact) return state.artifact;
-
-  const response = await fetch("./artifacts/contracts/TTHToken.sol/TTHToken.json");
-  if (!response.ok) {
-    throw new Error("Unable to load the contract artifact.");
-  }
-
-  state.artifact = await response.json();
-  return state.artifact;
-}
-
-async function deployToken() {
-  if (!state.account) {
-    elements.deployFeedback.textContent = "Connect your wallet first.";
-    return;
-  }
-
-  const initialSupply = elements.initialSupply.value.trim();
-  if (!initialSupply || Number(initialSupply) <= 0) {
-    elements.deployFeedback.textContent = "Enter a valid initial supply.";
-    return;
-  }
-
-  try {
-    elements.deployFeedback.textContent = "Deploying your TTH token...";
-    const artifact = await loadArtifact();
-    const factory = new ethers.ContractFactory(artifact.abi, artifact.bytecode, state.signer);
-    const parsedSupply = ethers.parseUnits(initialSupply, 18);
-    const contract = await factory.deploy(parsedSupply);
-    await contract.waitForDeployment();
-    const deployedAddress = await contract.getAddress();
-
-    state.contract = contract;
-    const [name, symbol, decimals] = await Promise.all([
-      contract.name(),
-      contract.symbol(),
-      contract.decimals()
-    ]);
-
-    state.tokenMeta = { name, symbol, decimals };
-    elements.contractAddress.value = deployedAddress;
-    elements.deployedAddressValue.textContent = formatAddress(deployedAddress);
-    elements.tokenNameValue.textContent = `${name} (${symbol})`;
-    elements.deployFeedback.textContent = `Deployed ${name} at ${formatAddress(deployedAddress)}.`;
-    elements.contractFeedback.textContent = `Loaded ${name} at ${formatAddress(deployedAddress)}.`;
-    await refreshBalances();
-  } catch (error) {
-    elements.deployFeedback.textContent = `Deployment failed: ${error.message}`;
   }
 }
 
@@ -277,12 +226,31 @@ async function copyAddress() {
   }
 }
 
+async function openBuyFlow() {
+  if (!state.account) {
+    elements.buyFeedback.textContent = "Connect your wallet first.";
+    return;
+  }
+
+  try {
+    if (window.ethereum?.request) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: []
+      });
+    }
+    elements.buyFeedback.textContent = "Open your wallet’s buy or swap flow from MetaMask when available.";
+  } catch (error) {
+    elements.buyFeedback.textContent = `Buy flow unavailable: ${error.message}`;
+  }
+}
+
 async function initialize() {
   elements.connectButton.addEventListener("click", connectWallet);
-  elements.deployButton.addEventListener("click", deployToken);
   elements.loadContractButton.addEventListener("click", loadToken);
   elements.sendButton.addEventListener("click", sendToken);
   elements.copyAddressButton.addEventListener("click", copyAddress);
+  elements.buyButton.addEventListener("click", openBuyFlow);
 
   if (window.ethereum) {
     const provider = window.ethereum;
@@ -296,8 +264,9 @@ async function initialize() {
         elements.receiveAddress.textContent = "Not connected";
         elements.balanceValue.textContent = "0 TTH";
         elements.nativeBalanceValue.textContent = "0 ETH";
-        elements.profileName.textContent = "Web3 Profile";
+        elements.profileName.textContent = "TTH Profile";
         elements.profileSubtitle.textContent = "Connect MetaMask to activate your wallet.";
+        elements.statusValue.textContent = "Offline";
         setStatus("Wallet disconnected.", true);
         return;
       }
@@ -311,8 +280,9 @@ async function initialize() {
       elements.accountValue.textContent = formatAddress(state.account);
       elements.networkValue.textContent = network.name || `Chain ${network.chainId}`;
       elements.receiveAddress.textContent = state.account;
-      elements.profileName.textContent = "Connected profile";
+      elements.profileName.textContent = "TTH Profile";
       elements.profileSubtitle.textContent = formatAddress(state.account);
+      elements.statusValue.textContent = "Connected";
       await loadToken();
     });
 
